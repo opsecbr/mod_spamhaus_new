@@ -63,6 +63,21 @@ $ make
 $ sudo make install
 ```
 
+### Compilando com auxilio de um container do Docker
+
+Presumindo que você tenha o `docker` instalado em seu computador ou no computador que será utilizado para compilação, execute os seguintes comandos:
+
+```
+$ git clone https://github.com/opsecbr/mod_spamhaus_new.git
+$ cd mod_spamhaus_new
+$ docker run -it --rm -w /mod_spamhaus_new -v ${PWD}:/mod_spamhaus_new ubuntu:22.04 bash
+# apt-get update && apt-get install shc build-essential apache2-dev -y
+# make && exit
+$ ls -l src/.libs/mod_spamhaus_new.so
+```
+
+A biblioteca foi compilada e esta disponível em `src/.libs/mod_spamhaus_new.so` dentro do diretório do projeto que foi clonado.
+
 ## CONFIGURATION
 
 First, you must add following command to the main config file of you're web server to load 
