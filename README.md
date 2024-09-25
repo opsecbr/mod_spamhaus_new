@@ -63,9 +63,9 @@ $ make
 $ sudo make install
 ```
 
-### Compilando com auxilio de um container do Docker
+### Compilando com auxílio de um container do Docker
 
-Presumindo que você tenha o `docker` instalado em seu computador ou no computador que será utilizado para compilação, execute os seguintes comandos:
+Presumindo que você tenha o `docker` instalado em seu computador, ou no computador que será utilizado para compilação, execute os seguintes comandos:
 
 ```
 $ git clone https://github.com/opsecbr/mod_spamhaus_new.git
