@@ -22,74 +22,83 @@ https://www.kaufmann-automotive.ch
 Copyright: Copyright (C) 2008 Luca Ercoli  <luca.e [at] seeweb.it>
                          2018 Rainer Kaufmann <info [at] kaufmann-automotive.ch>
 
-## License:
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-
-
-# What's mod_spamhaus_new
+## O QUE É O mod_spamhaus_new
 
 mod_spamhaus_new is an Apache module that uses DNSBL in order to block spam relay via web forms, preventing URL injection, block http DDoS attacks from bots and generally protecting your web service denying access to a known bad IP address. Default configuration takes advantage of the Spamhaus Block List (SBL) and the Exploits Block List (XBL) querying sbl-xbl.spamhaus.org but you can use a different DNSB, for example local rbldnsd instance of sbl-xbl (increasing query performance). Spamhaus's DNSBLs are offered as a free public service for low-volume non-commercial use. To check if you qualify for free use, please see: Spamhaus DNSBL usage criteria (http://www.spamhaus.org/organization/dnsblusage.html)
 
+## COMPILAÇÃO
 
-## INSTALLATION
-
-### Prerequisites
+### Pré-requisitos
 
 * Apache 2.4.X - http://www.apache.org/
 Other versions may work but have not been tested
+* Docker 27.x.X
 
-### Building
+### Compilando
 
-If you have got the apxs2 (APache eXtenSion tool) tool installed, write the following commands
-to build module:
-
-```
-$ tar zxvf mod_spamhaus_new-0.X.tar.gz
-$ cd mod-spamhaus-new
-$ make
-$ sudo make install
-```
-
-### Compilando com auxílio de um container do Docker
-
+Para realizar a compilação sem ter que instalar pacotes no sistema operacional, vamos utilizar um container do docker.
 Presumindo que você tenha o `docker` instalado em seu computador, ou no computador que será utilizado para compilação, execute os seguintes comandos:
 
 ```
 $ git clone https://github.com/opsecbr/mod_spamhaus_new.git
 $ cd mod_spamhaus_new
 $ docker run -it --rm -w /mod_spamhaus_new -v ${PWD}:/mod_spamhaus_new ubuntu:22.04 bash
-# apt-get update && apt-get install shc build-essential apache2-dev -y
+# apt-get update && apt-get install build-essential apache2-dev -y
 # make && exit
 $ ls -l src/.libs/mod_spamhaus_new.so
 ```
 
 A biblioteca foi compilada e esta disponível em `src/.libs/mod_spamhaus_new.so` dentro do diretório do projeto que foi clonado.
 
-## CONFIGURATION
+## INSTALAÇÃO
 
-First, you must add following command to the main config file of you're web server to load 
-mod_spamhaus_new module:
+Os comandos abaixo tem o objetivo de instalar e criar os arquivos de configuração básicos do módulo, sendo compatíveis para execução em sistemas operacionais Ubuntu 22.04/24.04, com o Apache2 2.4.* já instalado.
+
+Considernado que você ainda esta dentro do diretório do projeto que foi clonado, execute os comandos:
 
 ```
-LoadModule spamhaus_new_module /usr/lib/apache2/modules/mod_spamhaus_new.so
+$ sudo cp -a src/.libs/mod_spamhaus_new.so /usr/lib/apache2/modules/mod_spamhaus_new.so
+$ echo 'localhost' | sudo tee /etc/spamhaus.unaffected
+$ echo '127.0.0.1' | sudo tee /etc/spamhaus.wl
+$ echo "LoadModule spamhaus_new_module /usr/lib/apache2/modules/mod_spamhaus_new.so" | sudo tee /etc/apache2/mods-available/spamhaus_new.load
+$ cat <<EOF | sudo tee /etc/apache2/mods-available/spamhaus_new.conf
+<IfModule mod_spamhaus_new.c>
+
+    # HTTP methods that should be checked
+    MS_METHODS POST,PUT,OPTIONS,CONNECT,GET
+
+    # Whitelist of IP addresses and address ranges
+    MS_WhiteList /etc/spamhaus.wl
+
+    # List of domains that should not be affected
+    MS_UnaffectedDomains /etc/spamhaus.unaffected
+
+    # Used DNS-based blackhole list
+    MS_Dns `dnsbl.rbl.com`
+
+    # IP cache size
+    MS_CacheSize 4096
+
+    # IP cache entry validity
+    MS_CacheValidity 300
+
+    # Error message that is presented to the user
+    MS_CustomError "Access Denied! Your IP address is blacklisted because of malicious behavior in the past."
+
+</IfModule>
+EOF
+$ sudo a2enmod spamhaus_new
+$ sudo apache2ctl configtest
+$ sudo systemctl restart apache2
 ```
 
-(The path to mod_spamhaus_new.so depends on your apache installation)
+> [!NOTE]
+> O caminho para mod_spamhaus_new.so depende da instalação do seu Apache2.
 
-## Directives
+> [!IMPORTANT]
+> Lembre-se de ajustar o nome da DNSBL/RBL que será utilizada alterando o parâmetro `MS_Dns` no arquivo `/etc/apache2/mods-available/spamhaus_new.conf`.
+
+## CONFIGURAÇÕES
 
 ### MS_Methods
 
@@ -179,3 +188,19 @@ MS_CacheValidity 86400
 
 </IfModule>
 ```
+
+## LICENÇA
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
